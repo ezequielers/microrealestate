@@ -7,9 +7,9 @@ COPY .yarnrc.yml .
 COPY yarn.lock .
 COPY .yarn/plugins .yarn/plugins
 COPY .yarn/releases .yarn/releases
-COPY types/package.json types/package.json
-COPY webapps/commonui/package.json webapps/commonui/package.json
-COPY webapps/tenant/package.json webapps/tenant/package.json
+# COPY types/package.json types/package.json
+# COPY webapps/commonui/package.json webapps/commonui/package.json
+# COPY webapps/tenant/package.json webapps/tenant/package.json
 RUN --mount=type=cache,id=node_modules,target=/root/.yarn YARN_CACHE_FOLDER=/root/.yarn \
     yarn workspaces focus @microrealestate/tenant
 

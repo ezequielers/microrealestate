@@ -22,6 +22,8 @@ services:
     command: --quiet
     expose:
       - '$MONGO_PORT'
+    ports:
+      - '$MONGO_PORT:$MONGO_PORT'
     volumes:
       - ./data/mongodb:/data/db
       - ./backup:/backup

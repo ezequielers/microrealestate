@@ -27,6 +27,8 @@ services:
     command: --quiet --logpath /dev/null
     expose:
       - '27017'
+    ports:
+      - '27017:27017'
     volumes:
       - ./data/mongodb:/data/db
       - ./backup:/backup
@@ -39,7 +41,7 @@ services:
     image: caddy:latest
     profiles:
       - ''
-    command: caddy reverse-proxy --from ${APP_PROTOCOL:-http}://${APP_DOMAIN}${APP_PORT:+:}${APP_PORT} --to gateway:8080
+    command: caddy reverse-proxy --from ${APP_PROTOCOL:-http}://${APP_DOMAIN}${APP_PORT:+:}${APP_PORT} --to gateway:8081
     ports:
       - ${APP_PORT:-80}:${APP_PORT:-80}
       - 443:443
@@ -50,11 +52,14 @@ services:
   ###############################################################################
   gateway:
     restart: unless-stopped
-    image: 'ghcr.io/microrealestate/microrealestate/gateway:${MRE_VERSION:-latest}'
+    # image: 'ghcr.io/microrealestate/microrealestate/gateway:${MRE_VERSION:-latest}'
+    build:
+      context: .
+      dockerfile: services/gateway/dev.Dockerfile
     environment:
-      NODE_ENV: production
+      # NODE_ENV: production
       LOGGER_LEVEL: info
-      PORT: 8080
+      PORT: 8081
       EXPOSE_FRONTENDS: 'true'
       AUTHENTICATOR_URL: http://authenticator:8000
       API_URL: http://api:8200/api/v2
@@ -68,7 +73,11 @@ services:
       CORS_ENABLED: 'true'
       TENANTAPI_URL: http://tenantapi:8250/tenantapi
     ports:
-      - '8080:8080'
+      - '8081:8080'
+    volumes:
+      - ./types:/usr/app/types
+      - ./services/common:/usr/app/services/common
+      - ./services/gateway:/usr/app/services/gateway
     # healthcheck:
     #   test:
     #     [
@@ -97,9 +106,12 @@ services:
   ###############################################################################
   authenticator:
     restart: unless-stopped
-    image: 'ghcr.io/microrealestate/microrealestate/authenticator:${MRE_VERSION:-latest}'
+    # image: 'ghcr.io/microrealestate/microrealestate/authenticator:${MRE_VERSION:-latest}'
+    build:
+      context: .
+      dockerfile: services/authenticator/dev.Dockerfile
     environment:
-      NODE_ENV: production
+      # NODE_ENV: production
       PORT: 8000
       LOGGER_LEVEL: info
       REDIS_URL: redis://redis
@@ -115,6 +127,10 @@ services:
       APP_PROTOCOL: ${APP_PROTOCOL:-http}
     expose:
       - '8000'
+    volumes:
+      - ./types:/usr/app/types
+      - ./services/common:/usr/app/services/common
+      - ./services/authenticator:/usr/app/services/authenticator
     networks:
       - net
     depends_on:
@@ -129,9 +145,12 @@ services:
   ###############################################################################
   pdfgenerator:
     restart: unless-stopped
-    image: 'ghcr.io/microrealestate/microrealestate/pdfgenerator:${MRE_VERSION:-latest}'
+    # image: 'ghcr.io/microrealestate/microrealestate/pdfgenerator:${MRE_VERSION:-latest}'
+    build:
+      context: .
+      dockerfile: services/pdfgenerator/dev.Dockerfile
     environment:
-      NODE_ENV: production
+      # NODE_ENV: production
       PORT: 8300
       LOGGER_LEVEL: info
       MONGO_URL: ${MONGO_URL:-mongodb://mongo/mredb}
@@ -141,6 +160,10 @@ services:
       UPLOAD_MAX_SIZE: 2000000000 # ~2Gb
     expose:
       - '8300'
+    volumes:
+      - ./services/pdfgenerator:/usr/app/services/pdfgenerator
+      - ./types:/usr/app/types
+      - ./services/common:/usr/app/services/common
     networks:
       - net
     depends_on:
@@ -151,9 +174,12 @@ services:
   ###############################################################################
   emailer:
     restart: unless-stopped
-    image: 'ghcr.io/microrealestate/microrealestate/emailer:${MRE_VERSION:-latest}'
+    # image: 'ghcr.io/microrealestate/microrealestate/emailer:${MRE_VERSION:-latest}'
+    build:
+      context: .
+      dockerfile: services/emailer/dev.Dockerfile
     environment:
-      NODE_ENV: production
+      # NODE_ENV: production
       ALLOW_SENDING_EMAILS: 'true'
       PORT: 8400
       LOGGER_LEVEL: info
@@ -191,6 +217,10 @@ services:
       #########################################
     expose:
       - '8400'
+    volumes:
+      - ./types:/usr/app/types
+      - ./services/common:/usr/app/services/common
+      - ./services/emailer:/usr/app/services/emailer
     networks:
       - net
     depends_on:
@@ -203,11 +233,17 @@ services:
   ###############################################################################
   api:
     restart: unless-stopped
-    image: 'ghcr.io/microrealestate/microrealestate/api:${MRE_VERSION:-latest}'
+    # image: 'ghcr.io/microrealestate/microrealestate/api:${MRE_VERSION:-latest}'
+    build:
+      context: .
+      dockerfile: services/api/dev.Dockerfile
     volumes:
       - ./backup:/usr/app/backup
+      - ./types:/usr/app/types
+      - ./services/common:/usr/app/services/common
+      - ./services/api:/usr/app/services/api
     environment:
-      NODE_ENV: production
+      # NODE_ENV: production
       PORT: 8200
       LOGGER_LEVEL: info
       MONGO_URL: ${MONGO_URL:-mongodb://mongo/mredb}
@@ -233,15 +269,22 @@ services:
   ###############################################################################
   tenantapi:
     restart: unless-stopped
-    image: 'ghcr.io/microrealestate/microrealestate/tenantapi:${MRE_VERSION:-latest}'
+    # image: 'ghcr.io/microrealestate/microrealestate/tenantapi:${MRE_VERSION:-latest}'
+    build:
+      context: .
+      dockerfile: services/tenantapi/dev.Dockerfile
     environment:
-      NODE_ENV: production
+      # NODE_ENV: production
       PORT: 8250
       LOGGER_LEVEL: info
       MONGO_URL: ${MONGO_URL:-mongodb://mongo/mredb}
       ACCESS_TOKEN_SECRET: ${ACCESS_TOKEN_SECRET:-access_token_secret} # Change secret in production
     expose:
       - '8250'
+    volumes:
+      - ./types:/usr/app/types
+      - ./services/common:/usr/app/services/common
+      - ./services/tenantapi:/usr/app/services/tenantapi
     networks:
       - net
     depends_on:
@@ -252,17 +295,25 @@ services:
   ###############################################################################
   landlord-frontend:
     restart: unless-stopped
-    image: 'ghcr.io/microrealestate/microrealestate/landlord-frontend:${MRE_VERSION:-latest}'
+    # image: 'ghcr.io/microrealestate/microrealestate/landlord-frontend:${MRE_VERSION:-latest}'
+    build:
+      context: .
+      dockerfile: webapps/landlord/dev.Dockerfile
     environment:
       BASE_PATH: /landlord
       PORT: 8180
       DOCKER_GATEWAY_URL: http://gateway:8080
       CORS_ENABLED: 'true'
       GATEWAY_URL: ${APP_PROTOCOL:-http}://${APP_DOMAIN:-localhost}${APP_PORT:+:}${APP_PORT}
-      NODE_ENV: production
+      # NODE_ENV: production
       SIGNUP: 'true'
     expose:
       - '8180'
+    ports:
+      - '8180:8180'
+    volumes:
+      - ./webapps/landlord:/usr/app/webapps/landlord
+      - ./webapps/commonui:/usr/app/webapps/commonui
     networks:
       - net
     depends_on:
@@ -273,16 +324,25 @@ services:
   ###############################################################################
   tenant-frontend:
     restart: unless-stopped
-    image: 'ghcr.io/microrealestate/microrealestate/tenant-frontend:${MRE_VERSION:-latest}'
+    # image: 'ghcr.io/microrealestate/microrealestate/tenant-frontend:${MRE_VERSION:-latest}'
+    build:
+      context: .
+      dockerfile: webapps/tenant/dev.Dockerfile
     environment:
       BASE_PATH: /tenant
       PORT: 8190
       DOCKER_GATEWAY_URL: http://gateway:8080
       CORS_ENABLED: 'true'
       GATEWAY_URL: ${APP_PROTOCOL:-http}://${APP_DOMAIN:-localhost}${APP_PORT:+:}${APP_PORT}
-      NODE_ENV: production
+      # NODE_ENV: production
     expose:
       - '8190'
+    ports:
+      - '8190:8190'
+    volumes:
+      - ./webapps/tenant:/usr/app/webapps/tenant
+      - ./webapps/commonui:/usr/app/webapps/commonui
+      - ./types:/usr/app/types
     networks:
       - net
     depends_on:

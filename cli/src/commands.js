@@ -29,13 +29,13 @@ function initDirectories() {
 function displayHeader() {
   clear();
   console.log(
-    figlet.textSync('MicroRealEstate', {
+    figlet.textSync('HomeFlip', {
       horizontalLayout: 'fitted'
     })
   );
   console.log(
     chalk.dim(
-      'The application designed to assist landlords in managing their properties and rentals'
+      'Um aplicação desenvolvida para auxiliar proprietários na gestão de seus imóveis e aluguéis'
     )
   );
   console.log('');
@@ -763,7 +763,7 @@ ${Object.entries(envConfig)
   // email delivery configuration
   let emailDeliveryConfigContent = `
 # Email service has not been configured. Reset password and tenant sign in will not work.
-# You can configure it later by running the command ./mre configure  
+# You can configure it later by running the command ./mre configure
   `;
   if (promptsConfig.emailConfig === 'gmail') {
     emailDeliveryConfigContent = `
@@ -802,7 +802,7 @@ SMTP_PASSWORD=${smtpPassword}
 ##  /!\\ The .env file is not versioned and should not be committed as it     ##
 ##  contains sensitive data (e.g. passwords, API keys, etc.).                ##
 ##                                                                           ##
-############################################################################### 
+###############################################################################
 
 ## Redis
 REDIS_PASSWORD=${tokenDbPassword}
